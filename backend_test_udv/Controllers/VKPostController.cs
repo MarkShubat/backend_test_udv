@@ -16,8 +16,8 @@ namespace backend_test_udv.Controllers
     public class VKPostController : ControllerBase
     {
         [HttpGet]
-        [Route("GetWallPosts")]
-        public IActionResult GetPosts(int id = 199373173, int count = 5)
+        [Route("GetDictionaryAndSave")]
+        public IActionResult GetDictionaryAndSave(int id = 199373173, int count = 5)
         {
             if (count < 0) return BadRequest("ВВедите неотрицательное количество последних постов");
             var dictionary = new Dictionary<char, int>();
@@ -47,6 +47,35 @@ namespace backend_test_udv.Controllers
             var context = new TestDBContext();
             context.Add(post);
             context.SaveChanges();
+            return Ok(dictionary);
+        }
+
+        [HttpGet]
+        [Route("GetDictionary")]
+        public IActionResult GetDictionary(int id = 199373173, int count = 5)
+        {
+            if (count < 0) return BadRequest("ВВедите неотрицательное количество последних постов");
+            var dictionary = new Dictionary<char, int>();
+            var PARAMS = $"id={id}&count={count}";
+            var request = $"https://api.vk.com/method/wall.get?{PARAMS}&access_token={Startup.vkApiToken}&v=5.131";
+            try
+            {
+                var itemsFromPosts = Methods.GetTextFromPostsByReqest(request).Result.ToList();
+            }
+            catch
+            {
+                return BadRequest("Пользователь не найден или профиль скрыт");
+            }
+            var itemFromPosts = Methods.GetTextFromPostsByReqest(request).Result.ToList();
+            try
+            {
+                if (itemFromPosts.First().owner_id != id) return BadRequest("Пользователь не найден или профиль скрыт");
+            }
+            catch { }
+            foreach (var elem in itemFromPosts)
+            {
+                dictionary = Methods.GetUniqueChars(elem.text, dictionary);
+            }
             return Ok(dictionary);
         }
 
